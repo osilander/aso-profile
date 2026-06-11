@@ -39,6 +39,8 @@ Current ASO-relevant ClinVar variant count:
 4045 clinvar_20genes_pathogenic_snv_aso_relevant.tsv
 ```
 
+Dependencies:
+
 ```bash
 bcftools
 htslib/bgzip/tabix
@@ -49,6 +51,8 @@ zcat
 wget
 ```
 
+Get gencode:
+
 ```bash
 wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_48/gencode.v48.basic.annotation.gtf.gz
 ```
@@ -57,6 +61,9 @@ wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_48/gencod
 gzip -t gencode.v48.basic.annotation.gtf.gz
 zcat gencode.v48.basic.annotation.gtf.gz | grep -v '^#' | head
 ```
+
+## Focal genes
+Derived from _Scaling haplospecific antisense oligonucleotides from N-of-1 to broad use in genetic disease populations by diplotyping_ Kim-McManus et al. 2026
 
 ```bash
 cat > genes.txt <<'EOF'
@@ -88,19 +95,26 @@ chmod +x make_gene_bed.sh
 ./make_gene_bed.sh genes.txt gencode.v48.basic.annotation.gtf.gz
 ```
 
+Make a "chr"-less bed
+
 ```bash
 sed 's/^chr//' genes.standard.bed > genes.standard.nochr.bed
 ```
+
+Get Clinvar and index
 
 ```bash
 wget https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
 wget https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi
 
+# extract ClinVar records in target genes
 bcftools view -R genes.standard.nochr.bed clinvar.vcf.gz \
   -Oz -o clinvar_20genes.vcf.gz
 
 bcftools index -f clinvar_20genes.vcf.gz
 ```
+
+Filter for pathogenic/likely pathogenic ClinVar variants
 
 ```bash
 (
