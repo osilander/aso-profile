@@ -35,8 +35,9 @@ The current workflow has successfully:
 
 Current ASO-relevant ClinVar variant count:
 
-```text
+```bash
 4045 clinvar_20genes_pathogenic_snv_aso_relevant.tsv
+```
 
 ```bash
 bcftools
