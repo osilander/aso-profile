@@ -129,15 +129,21 @@ Filter for pathogenic/likely pathogenic ClinVar variants
 bcftools index -f clinvar_20genes_pathogenic.vcf.gz
 ```
 
+write a ClinVar pathogenic TSV
+
 ```bash
 bcftools query \
   -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/GENEINFO\t%INFO/CLNSIG\t%INFO/CLNREVSTAT\t%INFO/MC\t%INFO/CLNHGVS\t%INFO/CLNDN\n' \
   clinvar_20genes_pathogenic.vcf.gz \
   > clinvar_20genes_pathogenic.tsv
+
+# Add a header
 printf "CHROM\tPOS\tID\tREF\tALT\tGENEINFO\tCLNSIG\tCLNREVSTAT\tMC\tCLNHGVS\tCLNDN\n" \
   | cat - clinvar_20genes_pathogenic.tsv \
   > clinvar_20genes_pathogenic.header.tsv
 ```
+
+filter for ASO-relevant SNVs and splice-region variants
 
 ```bash
 awk -F'\t' 'BEGIN{OFS="\t"}
@@ -151,10 +157,8 @@ cut -f6 clinvar_20genes_pathogenic_snv_aso_relevant.tsv \
   | sort | uniq -c | sort -nr
 
 ## result 4045 clinvar_20genes_pathogenic_snv_aso_relevant.tsv
-```
 
-### Counts by gene
-```bash
+# counts by gene
 715 COL1A1
 650 COL2A1
 626 COL1A2
@@ -178,6 +182,7 @@ cut -f6 clinvar_20genes_pathogenic_snv_aso_relevant.tsv \
   3 AKT1
 ```
 
+# Next Steps
 ## Generate sequence windows around pathogenic variants
 
 For each pathogenic SNV, extract local genomic sequence around the variant from GRCh38.
