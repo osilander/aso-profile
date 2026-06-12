@@ -186,6 +186,8 @@ cut -f6 clinvar_20genes_pathogenic_snv_aso_relevant.tsv \
 ## Generate sequence windows around pathogenic variants
 
 For each pathogenic SNV, extract local genomic sequence around the variant from GRCh38.
+Here, pull +- 20nt
+
 
 Score causal-variant ASO suitability
 
@@ -206,6 +208,22 @@ exonic/intronic/UTR/splice context.
 ## Pull common SNPs in the same genes
 
 Next, use gnomAD or 1000 Genomes to pull common SNPs across the same gene bodies.
+
+```bash
+mkdir -p results/common_snps
+
+for c in {1..22}; do
+
+  VCF="data/1000G_highcov_GRCh38/1kGP_high_coverage_Illumina.chr${c}.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+
+  bcftools view -R genes.standard.bed "$VCF" \
+    -m2 -M2 -v snps \
+    -i 'INFO/AF>=0.2 && INFO/AF<=0.8' \
+    -Oz -o results/common_snps/chr${c}.genes.af0.2.snps.vcf.gz
+  bcftools index -f results/common_snps/chr${c}.genes.af0.2.snps.vcf.gz
+
+done
+```
 
 ## Score high-MAF SNP ASO suitability
 
