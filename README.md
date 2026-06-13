@@ -362,6 +362,33 @@ awk -F'\t' 'BEGIN{OFS="\t"}
 ./build_aso_variant_tables.sh
 ```
 
+### Transcript context
+```bash
+# exons
+zcat gencode.v48.basic.annotation.gtf.gz \
+  | awk 'BEGIN{FS=OFS="\t"} $3=="exon" {
+      gene="";
+      if (match($9, /gene_name "[^"]+"/)) {
+        gene=substr($9, RSTART+11, RLENGTH-12);
+      }
+      if (gene!="") print $1,$4-1,$5,gene"|exon",".",$7
+    }' \
+  > refs/gencode.v48.exons.bed
+
+# CDS
+zcat gencode.v48.basic.annotation.gtf.gz \
+  | awk 'BEGIN{FS=OFS="\t"} $3=="CDS" {
+      gene="";
+      if (match($9, /gene_name "[^"]+"/)) {
+        gene=substr($9, RSTART+11, RLENGTH-12);
+      }
+      if (gene!="") print $1,$4-1,$5,gene"|CDS",".",$7
+    }' \
+  > refs/gencode.v48.CDS.bed
+```
+
+
+
 ## Score high-MAF SNP ASO suitability
 
 For each high-MAF SNP, design reciprocal reference- and alternate-targeting ASOs where possible.
