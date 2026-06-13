@@ -179,7 +179,6 @@ cut -f6 clinvar_20genes_pathogenic_snv_aso_relevant.tsv \
   3 AKT1
 ```
 
-# Next Steps
 ## Generate sequence windows around pathogenic variants
 
 For each pathogenic SNV, extract local genomic sequence around the variant from GRCh38.
