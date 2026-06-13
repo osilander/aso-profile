@@ -42,13 +42,10 @@ Current ASO-relevant ClinVar variant count:
 Dependencies:
 
 ```bash
-bcftools
-htslib/bgzip/tabix
-awk
-grep
-sort
-zcat
-wget
+bcftools v1.22
+bedtools v2.31.1
+samtools v1.23.1
+ViennaRNA v2.4.17
 ```
 
 Get gencode:
