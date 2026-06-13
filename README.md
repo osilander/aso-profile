@@ -210,19 +210,156 @@ exonic/intronic/UTR/splice context.
 Next, use gnomAD or 1000 Genomes to pull common SNPs across the same gene bodies.
 
 ```bash
-mkdir -p results/common_snps
 
-for c in {1..22}; do
+./make_common_1000g_gene_snps.sh
 
-  VCF="data/1000G_highcov_GRCh38/1kGP_high_coverage_Illumina.chr${c}.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+# fix MAFs
+awk -F'\t' 'BEGIN{OFS="\t"}
+  NR==1 {
+    print $0, "MAF", "HET_RATE", "HOM_ALT_RATE"
+    next
+  }
+  {
+    af=$6
+    an=$8
+    ac_het=$9
+    ac_hom=$10
 
-  bcftools view -R genes.standard.bed "$VCF" \
-    -m2 -M2 -v snps \
-    -i 'INFO/AF>=0.2 && INFO/AF<=0.8' \
-    -Oz -o results/common_snps/chr${c}.genes.af0.2.snps.vcf.gz
-  bcftools index -f results/common_snps/chr${c}.genes.af0.2.snps.vcf.gz
+    split(af, a_af, ","); af=a_af[1]
+    split(an, a_an, ","); an=a_an[1]
+    split(ac_het, a_het, ","); ac_het=a_het[1]
+    split(ac_hom, a_hom, ","); ac_hom=a_hom[1]
 
-done
+    n_ind = an / 2
+
+    maf = (af <= 0.5 ? af : 1 - af)
+    het_rate = ac_het / n_ind
+
+    # AC_Hom is allele count in homozygous-alt individuals, so divide by 2
+    hom_alt_rate = (ac_hom / 2) / n_ind
+
+    print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,maf,het_rate,hom_alt_rate
+  }
+' results/common_gene_body_snps.af0.2.header.tsv \
+  > results/common_gene_body_snps.af0.2.with_rates.tsv
+
+# assign to genes
+bcftools query \
+  -f '%CHROM\t%POS0\t%END\t%ID\t%REF\t%ALT\t%INFO/AF\t%INFO/AC\t%INFO/AN\t%INFO/AC_Het\t%INFO/AC_Hom\n' \
+  results/common_gene_body_snps.af0.2.vcf.gz \
+  > results/common_gene_body_snps.af0.2.bedlike.tsv
+
+# intersect with bed
+bedtools intersect \
+  -a results/common_gene_body_snps.af0.2.bedlike.tsv \
+  -b genes.standard.bed \
+  -wa -wb \
+  > results/common_gene_body_snps.af0.2.with_gene.tsv
+
+# counts
+    252 SCN2A
+    236 CARD11
+    193 NLRP3
+    167 ABCC8
+    136 KIF1A
+    131 SCN8A
+    109 MTOR
+     86 STAT1
+     86 KCNQ2
+     84 STAT3
+     72 PIK3CA
+     70 COL2A1
+     69 SPTLC1
+     64 SPTAN1
+     45 KCNJ11
+     43 COL1A2
+     38 AKT1
+     19 COL1A1
+     18 KIF5B
+      7 RELA
+
+# add MAFs etc.
+awk -F'\t' 'BEGIN{OFS="\t"}
+  {
+    af=$7
+    ac=$8
+    an=$9
+    ac_het=$10
+    ac_hom=$11
+
+    split(af, a_af, ","); af=a_af[1]
+    split(an, a_an, ","); an=a_an[1]
+    split(ac_het, a_het, ","); ac_het=a_het[1]
+    split(ac_hom, a_hom, ","); ac_hom=a_hom[1]
+
+    n_ind = an / 2
+
+    maf = (af <= 0.5 ? af : 1 - af)
+    het_rate = ac_het / n_ind
+    hom_alt_rate = (ac_hom / 2) / n_ind
+
+    print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,maf,het_rate,hom_alt_rate,$15,$17
+  }
+' results/common_gene_body_snps.af0.2.with_gene.tsv \
+  > results/common_gene_body_snps.af0.2.with_gene.rates.tsv
+
+# Header
+printf "SNP_CHROM\tSNP_START0\tSNP_END\tSNP_ID\tREF\tALT\tAF\tAC\tAN\tAC_HET\tAC_HOM\tMAF\tHET_RATE\tHOM_ALT_RATE\tGENE\tSTRAND\n" \
+  | cat - results/common_gene_body_snps.af0.2.with_gene.rates.tsv \
+  > results/common_gene_body_snps.af0.2.with_gene.rates.header.tsv
+
+# each gene with strand
+1:42:44 login03 /nesi/nobackup/uoa04097/aso-profile $ cut -f15,16 results/common_gene_body_snps.af0.2.with_gene.rates.tsv \
+  | sort | uniq -c | sort -nr
+    252 SCN2A	+
+    236 CARD11	-
+    193 NLRP3	+
+    167 ABCC8	-
+    136 KIF1A	-
+    131 SCN8A	+
+    109 MTOR	-
+     86 STAT1	-
+     86 KCNQ2	-
+     84 STAT3	-
+     72 PIK3CA	+
+     70 COL2A1	-
+     69 SPTLC1	-
+     64 SPTAN1	+
+     45 KCNJ11	-
+     43 COL1A2	+
+     38 AKT1	-
+     19 COL1A1	-
+     18 KIF5B	-
+      7 RELA	-
+
+# get common SNP windows
+awk -F'\t' 'BEGIN{OFS="\t"}
+  {
+    chrom=$1
+    start=$2 - 20
+    end=$3 + 20
+    snp_id=$4
+    ref=$5
+    alt=$6
+    maf=$12
+    het=$13
+    gene=$15
+    strand=$16
+
+    if (start < 0) start=0
+
+    name=gene"|"$snp_id"|"$ref">"$alt"|MAF="maf"|HET="het"|strand="strand
+
+    print chrom,start,end,name,".",strand
+  }
+' results/common_gene_body_snps.af0.2.with_gene.rates.tsv \
+  > results/common_gene_body_snps.af0.2.plusminus20.bed
+
+```
+
+### the whole process as a script
+```bash
+./build_aso_variant_tables.sh
 ```
 
 ## Score high-MAF SNP ASO suitability
