@@ -2,3 +2,5 @@
 /results/
 /refs/
 /logs/
+*.swp
+.*.swp
