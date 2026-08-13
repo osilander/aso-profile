@@ -1,0 +1,30 @@
+# Large reference and database directories
+/data/
+/refs/
+
+# Pipeline run logs
+/logs/
+
+# VCF-derived heterozygosity matrices (generated on NeSI from 1000G VCFs)
+# Synced locally for coverage_curves.R; too large for routine git
+vcf_cache/
+
+# Reproducible intermediate files in results/
+results/common_snps.plusminus100.*
+results/pathogenic_missense.plusminus100.*
+results/rnafold/
+results/rnafold_plusminus100_mfe.tsv
+results/offtarget/queries_*.fa
+
+# Legacy and intermediate outputs not needed by others
+old-scripts/
+old-figures/
+genome-medicine submission/
+figures/*.pdf
+
+# Editor and OS files
+*.swp
+.*.swp
+.DS_Store
+.Rhistory
+~$*
